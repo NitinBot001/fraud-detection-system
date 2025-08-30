@@ -1,0 +1,781 @@
+{% extends "base.html" %}
+
+{% block title %}Fraud Analysis - Fraud Detection System{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 mb-3">
+                <i class="fas fa-search me-2"></i>Comprehensive Fraud Analysis
+            </h1>
+            <p class="text-muted">Deep analysis of phone numbers using multiple detection algorithms and data sources.</p>
+        </div>
+    </div>
+
+    <!-- Analysis Form -->
+    <div class="row mb-4">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-phone me-2"></i>Phone Number Analysis
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form id="analysisForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="phoneNumber" class="form-label">Phone Number</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-phone"></i></span>
+                                    <input type="text" class="form-control phone-input" id="phoneNumber" 
+                                           placeholder="+1234567890" required>
+                                </div>
+                                <div class="invalid-feedback" id="phoneValidation"></div>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="analysisDepth" class="form-label">Analysis Depth</label>
+                                <select class="form-select" id="analysisDepth">
+                                    <option value="quick">Quick Analysis</option>
+                                    <option value="standard" selected>Standard Analysis</option>
+                                    <option value="deep">Deep Analysis</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">&nbsp;</label>
+                                <div>
+                                    <button type="submit" class="btn btn-primary w-100">
+                                        <i class="fas fa-search me-2"></i>Analyze
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="checkbox" id="networkAnalysis" checked>
+                                    <label class="form-check-label" for="networkAnalysis">Network Analysis</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="checkbox" id="behaviorAnalysis" checked>
+                                    <label class="form-check-label" for="behaviorAnalysis">Behavior Analysis</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="checkbox" id="externalChecks" checked>
+                                    <label class="form-check-label" for="externalChecks">External Database Checks</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="checkbox" id="mlPrediction" checked>
+                                    <label class="form-check-label" for="mlPrediction">ML Prediction</label>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-history me-2"></i>Recent Analyses
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="recentAnalyses" class="list-group list-group-flush">
+                        <!-- Recent analyses will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analysis Results -->
+    <div id="analysisResults" style="display: none;">
+        <!-- Overall Risk Assessment -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card border-danger" id="riskCard">
+                    <div class="card-header bg-danger text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Risk Assessment: <span id="overallRiskLevel">UNKNOWN</span>
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3 text-center">
+                                <canvas id="overallRiskGauge" width="150" height="150"></canvas>
+                                <h4 class="mt-2" id="overallRiskScore">0.0%</h4>
+                                <small class="text-muted">Overall Risk Score</small>
+                            </div>
+                            <div class="col-md-9">
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <div class="text-center">
+                                            <h5 id="fraudProbability">0.0%</h5>
+                                            <small class="text-muted">Fraud Probability</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="text-center">
+                                            <h5 id="confidence">0.0%</h5>
+                                            <small class="text-muted">Confidence</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="text-center">
+                                            <h5 id="processingTime">0ms</h5>
+                                            <small class="text-muted">Processing Time</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="text-center">
+                                            <h5 id="networkRisk">0.0%</h5>
+                                            <small class="text-muted">Network Risk</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mt-3">
+                                    <h6>Detected Patterns:</h6>
+                                    <div id="detectedPatterns"></div>
+                                </div>
+                                
+                                <div class="mt-3">
+                                    <h6>Recommendations:</h6>
+                                    <ul id="recommendations" class="list-unstyled"></ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detailed Analysis Tabs -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <ul class="nav nav-tabs card-header-tabs" id="analysisTabsNav" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" 
+                                        data-bs-target="#overview" type="button" role="tab">
+                                    <i class="fas fa-chart-pie me-1"></i>Overview
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="network-tab" data-bs-toggle="tab" 
+                                        data-bs-target="#network" type="button" role="tab">
+                                    <i class="fas fa-project-diagram me-1"></i>Network Analysis
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="behavior-tab" data-bs-toggle="tab" 
+                                        data-bs-target="#behavior" type="button" role="tab">
+                                    <i class="fas fa-user-clock me-1"></i>Behavior Patterns
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="external-tab" data-bs-toggle="tab" 
+                                        data-bs-target="#external" type="button" role="tab">
+                                    <i class="fas fa-database me-1"></i>External Sources
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="ml-tab" data-bs-toggle="tab" 
+                                        data-bs-target="#ml" type="button" role="tab">
+                                    <i class="fas fa-brain me-1"></i>ML Analysis
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card-body">
+                        <div class="tab-content" id="analysisTabsContent">
+                            <!-- Overview Tab -->
+                            <div class="tab-pane fade show active" id="overview" role="tabpanel">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6>Risk Breakdown</h6>
+                                        <canvas id="riskBreakdownChart" height="300"></canvas>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6>Timeline Analysis</h6>
+                                        <canvas id="timelineChart" height="300"></canvas>
+                                    </div>
+                                </div>
+                                
+                                <div class="row mt-4">
+                                    <div class="col-12">
+                                        <h6>Key Findings</h6>
+                                        <div id="keyFindings" class="alert alert-info">
+                                            <!-- Key findings will be populated here -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Network Analysis Tab -->
+                            <div class="tab-pane fade" id="network" role="tabpanel">
+                                <div class="row">
+                                    <div class="col-md-8">
+                                        <h6>Network Visualization</h6>
+                                        <div id="networkGraph" class="network-graph" style="height: 400px;">
+                                            <!-- Network graph will be rendered here -->
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <h6>Network Metrics</h6>
+                                        <table class="table table-sm">
+                                            <tbody id="networkMetrics">
+                                                <!-- Network metrics will be populated here -->
+                                            </tbody>
+                                        </table>
+                                        
+                                        <h6 class="mt-4">Connected Numbers</h6>
+                                        <div id="connectedNumbers" style="max-height: 300px; overflow-y: auto;">
+                                            <!-- Connected numbers will be listed here -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Behavior Patterns Tab -->
+                            <div class="tab-pane fade" id="behavior" role="tabpanel">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6>Temporal Patterns</h6>
+                                        <canvas id="temporalPatternsChart" height="250"></canvas>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6>Anomaly Detection</h6>
+                                        <div id="anomalies" class="list-group">
+                                            <!-- Anomalies will be listed here -->
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row mt-4">
+                                    <div class="col-12">
+                                        <h6>Behavior Analysis Summary</h6>
+                                        <div id="behaviorSummary" class="table-responsive">
+                                            <table class="table table-striped">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Pattern Type</th>
+                                                        <th>Score</th>
+                                                        <th>Confidence</th>
+                                                        <th>Description</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="behaviorPatternsTable">
+                                                    <!-- Behavior patterns will be populated here -->
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- External Sources Tab -->
+                            <div class="tab-pane fade" id="external" role="tabpanel">
+                                <div class="row">
+                                    <div class="col-12">
+                                        <h6>External Database Checks</h6>
+                                        <div id="externalSources" class="row">
+                                            <!-- External source results will be populated here -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- ML Analysis Tab -->
+                            <div class="tab-pane fade" id="ml" role="tabpanel">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6>Model Predictions</h6>
+                                        <div id="modelPredictions" class="table-responsive">
+                                            <table class="table table-striped">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Model</th>
+                                                        <th>Prediction</th>
+                                                        <th>Confidence</th>
+                                                        <th>Status</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="mlPredictionsTable">
+                                                    <!-- ML predictions will be populated here -->
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6>Feature Importance</h6>
+                                        <canvas id="featureImportanceChart" height="300"></canvas>
+                                    </div>
+                                </div>
+                                
+                                <div class="row mt-4">
+                                    <div class="col-12">
+                                        <h6>Model Explanation</h6>
+                                        <div id="modelExplanation" class="alert alert-info">
+                                            <!-- Model explanation will be populated here -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script>
+let currentAnalysisData = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    setupAnalysisForm();
+    loadRecentAnalyses();
+    
+    // Check if phone number is provided in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const phoneParam = urlParams.get('phone');
+    if (phoneParam) {
+        document.getElementById('phoneNumber').value = phoneParam;
+        performAnalysis();
+    }
+});
+
+function setupAnalysisForm() {
+    const form = document.getElementById('analysisForm');
+    const phoneInput = document.getElementById('phoneNumber');
+    
+    // Phone number validation
+    phoneInput.addEventListener('input', function() {
+        const isValid = validatePhoneNumber(this.value);
+        this.classList.toggle('is-invalid', !isValid && this.value.length > 0);
+        document.getElementById('phoneValidation').textContent = 
+            !isValid && this.value.length > 0 ? 'Please enter a valid phone number' : '';
+    });
+    
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        performAnalysis();
+    });
+}
+
+async function performAnalysis() {
+    const phoneNumber = document.getElementById('phoneNumber').value.trim();
+    const analysisDepth = document.getElementById('analysisDepth').value;
+    
+    if (!validatePhoneNumber(phoneNumber)) {
+        app.showAlert('Please enter a valid phone number', 'warning');
+        return;
+    }
+    
+    const analysisOptions = {
+        phone_number: phoneNumber,
+        deep_analysis: analysisDepth === 'deep',
+        include_network: document.getElementById('networkAnalysis').checked,
+        include_behavior: document.getElementById('behaviorAnalysis').checked,
+        include_external: document.getElementById('externalChecks').checked,
+        include_ml: document.getElementById('mlPrediction').checked
+    };
+    
+    try {
+        const result = await app.makeRequest('/fraud/analyze', {
+            method: 'POST',
+            body: analysisOptions
+        });
+        
+        currentAnalysisData = result;
+        displayAnalysisResults(result);
+        addToRecentAnalyses(result);
+    } catch (error) {
+        app.showAlert('Analysis failed: ' + error.message, 'danger');
+    }
+}
+
+function displayAnalysisResults(result) {
+    const resultsDiv = document.getElementById('analysisResults');
+    
+    // Update overall risk assessment
+    updateOverallRiskAssessment(result);
+    
+    // Update detailed tabs
+    updateOverviewTab(result);
+    updateNetworkTab(result);
+    updateBehaviorTab(result);
+    updateExternalTab(result);
+    updateMLTab(result);
+    
+    resultsDiv.style.display = 'block';
+    resultsDiv.scrollIntoView({ behavior: 'smooth' });
+}
+
+function updateOverallRiskAssessment(result) {
+    const riskCard = document.getElementById('riskCard');
+    const riskLevel = result.risk_level;
+    const riskScore = result.risk_score;
+    
+    // Update card styling based on risk level
+    riskCard.className = `card border-${getRiskColorClass(riskLevel)}`;
+    riskCard.querySelector('.card-header').className = `card-header bg-${getRiskColorClass(riskLevel)} text-white`;
+    
+    // Update values
+    document.getElementById('overallRiskLevel').textContent = riskLevel;
+    document.getElementById('overallRiskScore').textContent = (riskScore * 100).toFixed(1) + '%';
+    document.getElementById('fraudProbability').textContent = (result.fraud_probability * 100).toFixed(1) + '%';
+    document.getElementById('confidence').textContent = (result.confidence * 100).toFixed(1) + '%';
+    document.getElementById('processingTime').textContent = (result.processing_time * 1000).toFixed(0) + 'ms';
+    document.getElementById('networkRisk').textContent = (result.network_risk * 100).toFixed(1) + '%';
+    
+    // Update detected patterns
+    const patternsDiv = document.getElementById('detectedPatterns');
+    patternsDiv.innerHTML = result.detected_patterns.map(pattern => 
+        `<span class="pattern-badge">${pattern}</span>`
+    ).join('');
+    
+    // Update recommendations
+    const recommendationsList = document.getElementById('recommendations');
+    recommendationsList.innerHTML = result.recommendations.map(rec => 
+        `<li><i class="fas fa-arrow-right me-2 text-primary"></i>${rec}</li>`
+    ).join('');
+    
+    // Create overall risk gauge
+    createRiskGauge('overallRiskGauge', riskScore, riskLevel);
+}
+
+function updateOverviewTab(result) {
+    // Create risk breakdown chart
+    if (result.evidence && result.evidence.risk_components) {
+        createRiskBreakdownChart(result.evidence.risk_components);
+    }
+    
+    // Update key findings
+    const keyFindings = document.getElementById('keyFindings');
+    const findings = generateKeyFindings(result);
+    keyFindings.innerHTML = findings.map(finding => `<div class="mb-2"><i class="fas fa-lightbulb me-2"></i>${finding}</div>`).join('');
+}
+
+function updateNetworkTab(result) {
+    if (result.evidence && result.evidence.network_analysis) {
+        const networkData = result.evidence.network_analysis;
+        
+        // Update network metrics
+        const metricsTable = document.getElementById('networkMetrics');
+        metricsTable.innerHTML = `
+            <tr><td>Network Size</td><td>${networkData.network_size || 0}</td></tr>
+            <tr><td>Network Density</td><td>${(networkData.network_density || 0).toFixed(3)}</td></tr>
+            <tr><td>Clustering Coefficient</td><td>${(networkData.clustering_coefficient || 0).toFixed(3)}</td></tr>
+            <tr><td>Centrality Score</td><td>${(networkData.centrality_score || 0).toFixed(3)}</td></tr>
+        `;
+        
+        // Create network visualization
+        createNetworkVisualization(networkData);
+    }
+}
+
+function updateBehaviorTab(result) {
+    if (result.evidence && result.evidence.behavioral_analysis) {
+        const behaviorData = result.evidence.behavioral_analysis;
+        
+        // Update temporal patterns chart
+        if (behaviorData.temporal_patterns) {
+            createTemporalPatternsChart(behaviorData.temporal_patterns);
+        }
+        
+        // Update anomalies
+        const anomaliesDiv = document.getElementById('anomalies');
+        const anomalies = result.behavioral_anomalies || [];
+        anomaliesDiv.innerHTML = anomalies.map(anomaly => 
+            `<div class="list-group-item">
+                <i class="fas fa-exclamation-triangle text-warning me-2"></i>${anomaly}
+            </div>`
+        ).join('') || '<div class="text-muted">No anomalies detected</div>';
+    }
+}
+
+function updateExternalTab(result) {
+    // Simulate external source results
+    const externalDiv = document.getElementById('externalSources');
+    const sources = [
+        { name: 'Government Database', status: 'clear', confidence: 0.95 },
+        { name: 'International Fraud DB', status: 'flagged', confidence: 0.82 },
+        { name: 'Telecom Records', status: 'clear', confidence: 0.88 },
+        { name: 'Credit Bureau', status: 'pending', confidence: 0.0 }
+    ];
+    
+    externalDiv.innerHTML = sources.map(source => `
+        <div class="col-md-6 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="card-title">${source.name}</h6>
+                    <p class="card-text">
+                        Status: <span class="badge bg-${getStatusColor(source.status)}">${source.status.toUpperCase()}</span><br>
+                        Confidence: ${(source.confidence * 100).toFixed(0)}%
+                    </p>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function updateMLTab(result) {
+    // Simulate ML model predictions
+    const predictionsTable = document.getElementById('mlPredictionsTable');
+    const models = [
+        { name: 'Random Forest', prediction: 0.73, confidence: 0.89, status: 'active' },
+        { name: 'Neural Network', prediction: 0.68, confidence: 0.92, status: 'active' },
+        { name: 'SVM', prediction: 0.71, confidence: 0.85, status: 'active' },
+        { name: 'Gradient Boosting', prediction: 0.75, confidence: 0.91, status: 'active' }
+    ];
+    
+    predictionsTable.innerHTML = models.map(model => `
+        <tr>
+            <td>${model.name}</td>
+            <td>${(model.prediction * 100).toFixed(1)}%</td>
+            <td>${(model.confidence * 100).toFixed(1)}%</td>
+            <td><span class="badge bg-success">${model.status.toUpperCase()}</span></td>
+        </tr>
+    `).join('');
+    
+    // Create feature importance chart
+    createFeatureImportanceChart();
+}
+
+function createRiskBreakdownChart(riskComponents) {
+    const ctx = document.getElementById('riskBreakdownChart').getContext('2d');
+    
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(riskComponents),
+            datasets: [{
+                data: Object.values(riskComponents),
+                backgroundColor: [
+                    '#3498db', '#e74c3c', '#f39c12', '#27ae60', '#9b59b6'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+}
+
+function createNetworkVisualization(networkData) {
+    // Simple D3.js network visualization
+    const container = document.getElementById('networkGraph');
+    container.innerHTML = ''; // Clear previous content
+    
+    const width = container.clientWidth;
+    const height = 400;
+    
+    const svg = d3.select('#networkGraph')
+        .append('svg')
+        .attr('width', width)
+        .attr('height', height);
+    
+    // Simulate network data
+    const nodes = [
+        { id: 'center', group: 1, risk: 0.8 },
+        { id: 'node1', group: 2, risk: 0.3 },
+        { id: 'node2', group: 2, risk: 0.6 },
+        { id: 'node3', group: 3, risk: 0.2 },
+        { id: 'node4', group: 2, risk: 0.7 }
+    ];
+    
+    const links = [
+        { source: 'center', target: 'node1' },
+        { source: 'center', target: 'node2' },
+        { source: 'center', target: 'node3' },
+        { source: 'center', target: 'node4' },
+        { source: 'node1', target: 'node2' }
+    ];
+    
+    const simulation = d3.forceSimulation(nodes)
+        .force('link', d3.forceLink(links).id(d => d.id))
+        .force('charge', d3.forceManyBody().strength(-300))
+        .force('center', d3.forceCenter(width / 2, height / 2));
+    
+    const link = svg.append('g')
+        .selectAll('line')
+        .data(links)
+        .enter().append('line')
+        .attr('stroke', '#999')
+        .attr('stroke-opacity', 0.6)
+        .attr('stroke-width', 2);
+    
+    const node = svg.append('g')
+        .selectAll('circle')
+        .data(nodes)
+        .enter().append('circle')
+        .attr('r', d => d.id === 'center' ? 12 : 8)
+        .attr('fill', d => d3.interpolateRdYlBu(1 - d.risk))
+        .call(d3.drag()
+            .on('start', dragstarted)
+            .on('drag', dragged)
+            .on('end', dragended));
+    
+    node.append('title')
+        .text(d => `${d.id}\nRisk: ${(d.risk * 100).toFixed(0)}%`);
+    
+    simulation.on('tick', () => {
+        link
+            .attr('x1', d => d.source.x)
+            .attr('y1', d => d.source.y)
+            .attr('x2', d => d.target.x)
+            .attr('y2', d => d.target.y);
+        
+        node
+            .attr('cx', d => d.x)
+            .attr('cy', d => d.y);
+    });
+    
+    function dragstarted(event) {
+        if (!event.active) simulation.alphaTarget(0.3).restart();
+        event.subject.fx = event.subject.x;
+        event.subject.fy = event.subject.y;
+    }
+    
+    function dragged(event) {
+        event.subject.fx = event.x;
+        event.subject.fy = event.y;
+    }
+    
+    function dragended(event) {
+        if (!event.active) simulation.alphaTarget(0);
+        event.subject.fx = null;
+        event.subject.fy = null;
+    }
+}
+
+function createFeatureImportanceChart() {
+    const ctx = document.getElementById('featureImportanceChart').getContext('2d');
+    
+    const features = ['Call Frequency', 'Location Changes', 'Network Size', 'Report Count', 'Device Changes'];
+    const importance = [0.25, 0.22, 0.18, 0.20, 0.15];
+    
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: features,
+            datasets: [{
+                label: 'Feature Importance',
+                data: importance,
+                backgroundColor: '#3498db',
+                borderColor: '#2980b9',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            indexAxis: 'y',
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    max: 0.3
+                }
+            }
+        }
+    });
+}
+
+function generateKeyFindings(result) {
+    const findings = [];
+    
+    if (result.risk_score > 0.8) {
+        findings.push('High fraud risk detected - immediate action recommended');
+    }
+    
+    if (result.detected_patterns.length > 0) {
+        findings.push(`${result.detected_patterns.length} suspicious patterns identified`);
+    }
+    
+    if (result.network_risk > 0.6) {
+        findings.push('Connected to suspicious network nodes');
+    }
+    
+    if (result.confidence > 0.9) {
+        findings.push('High confidence analysis based on substantial data');
+    }
+    
+    return findings.length > 0 ? findings : ['No significant risk indicators found'];
+}
+
+function getRiskColorClass(riskLevel) {
+    const colors = {
+        'CRITICAL': 'danger',
+        'HIGH': 'warning',
+        'MEDIUM': 'info',
+        'LOW': 'success',
+        'MINIMAL': 'secondary'
+    };
+    return colors[riskLevel] || 'secondary';
+}
+
+function getStatusColor(status) {
+    const colors = {
+        'clear': 'success',
+        'flagged': 'danger',
+        'pending': 'warning'
+    };
+    return colors[status] || 'secondary';
+}
+
+async function loadRecentAnalyses() {
+    // Simulate loading recent analyses
+    const recentDiv = document.getElementById('recentAnalyses');
+    recentDiv.innerHTML = `
+        <div class="text-muted text-center p-3">
+            <i class="fas fa-history fa-2x mb-2"></i><br>
+            No recent analyses
+        </div>
+    `;
+}
+
+function addToRecentAnalyses(result) {
+    // Add current analysis to recent list
+    const recentDiv = document.getElementById('recentAnalyses');
+    const analysisItem = `
+        <div class="list-group-item list-group-item-action">
+            <div class="d-flex w-100 justify-content-between">
+                <h6 class="mb-1">${app.formatPhoneNumber(result.phone_number)}</h6>
+                <small>Just now</small>
+            </div>
+            <p class="mb-1">${app.createRiskBadge(result.risk_level, result.risk_score)}</p>
+            <small>Processing time: ${(result.processing_time * 1000).toFixed(0)}ms</small>
+        </div>
+    `;
+    
+    if (recentDiv.innerHTML.includes('No recent analyses')) {
+        recentDiv.innerHTML = analysisItem;
+    } else {
+        recentDiv.insertAdjacentHTML('afterbegin', analysisItem);
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Fraud Detection System{% endblock %}</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- DataTables -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --danger-color: #e74c3c;
+            --warning-color: #f39c12;
+            --success-color: #27ae60;
+            --info-color: #17a2b8;
+            --light-bg: #f8f9fa;
+            --dark-bg: #343a40;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light-bg);
+        }
+
+        .navbar-brand {
+            font-weight: bold;
+            color: var(--primary-color) !important;
+        }
+
+        .sidebar {
+            background-color: var(--primary-color);
+            min-height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 250px;
+            z-index: 1000;
+            padding-top: 80px;
+        }
+
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+            padding: 12px 20px;
+            border-radius: 0;
+            margin: 2px 10px;
+            transition: all 0.3s;
+        }
+
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link.active {
+            background-color: var(--secondary-color);
+            color: white;
+            border-radius: 5px;
+        }
+
+        .main-content {
+            margin-left: 250px;
+            padding: 20px;
+            padding-top: 100px;
+        }
+
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1001;
+            background-color: white !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .risk-card {
+            border-left: 4px solid var(--info-color);
+            transition: transform 0.2s;
+        }
+
+        .risk-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .risk-critical { border-left-color: var(--danger-color); }
+        .risk-high { border-left-color: var(--warning-color); }
+        .risk-medium { border-left-color: var(--info-color); }
+        .risk-low { border-left-color: var(--success-color); }
+
+        .metric-card {
+            background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .alert-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            min-width: 300px;
+        }
+
+        .loading-spinner {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 9999;
+        }
+
+        .phone-input {
+            font-family: monospace;
+            font-size: 1.1em;
+        }
+
+        .pattern-badge {
+            background-color: var(--warning-color);
+            color: white;
+            font-size: 0.8em;
+            padding: 3px 8px;
+            border-radius: 12px;
+            margin: 2px;
+        }
+
+        .network-graph {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: white;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s;
+            }
+            
+            .sidebar.show {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container-fluid">
+            <button class="btn btn-outline-primary d-md-none" type="button" id="sidebarToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <a class="navbar-brand ms-3" href="{{ url_for('dashboard') }}">
+                <i class="fas fa-shield-alt me-2"></i>Fraud Detection System
+            </a>
+            
+            <div class="navbar-nav ms-auto">
+                <div class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="notificationDropdown" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-bell"></i>
+                        <span class="badge bg-danger" id="notificationCount">0</span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end" id="notificationList">
+                        <li><h6 class="dropdown-header">Recent Alerts</h6></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-muted">No new notifications</a></li>
+                    </ul>
+                </div>
+                
+                <div class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-user-circle"></i>
+                        {% if current_user.is_authenticated %}
+                            {{ current_user.username }}
+                        {% else %}
+                            User
+                        {% endif %}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="{{ url_for('profile') }}"><i class="fas fa-user me-2"></i>Profile</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('settings') }}"><i class="fas fa-cog me-2"></i>Settings</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <nav class="nav nav-pills flex-column">
+            <a class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}" href="{{ url_for('dashboard') }}">
+                <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+            </a>
+            <a class="nav-link {% if request.endpoint == 'fraud_analysis' %}active{% endif %}" href="{{ url_for('fraud_analysis') }}">
+                <i class="fas fa-search me-2"></i>Fraud Analysis
+            </a>
+            <a class="nav-link {% if request.endpoint == 'reports' %}active{% endif %}" href="{{ url_for('reports') }}">
+                <i class="fas fa-file-alt me-2"></i>Reports
+            </a>
+            <a class="nav-link {% if request.endpoint == 'network_analysis' %}active{% endif %}" href="{{ url_for('network_analysis') }}">
+                <i class="fas fa-project-diagram me-2"></i>Network Analysis
+            </a>
+            <a class="nav-link {% if request.endpoint == 'statistics' %}active{% endif %}" href="{{ url_for('statistics') }}">
+                <i class="fas fa-chart-bar me-2"></i>Statistics
+            </a>
+            <a class="nav-link {% if request.endpoint == 'batch_analysis' %}active{% endif %}" href="{{ url_for('batch_analysis') }}">
+                <i class="fas fa-layer-group me-2"></i>Batch Analysis
+            </a>
+            
+            {% if current_user.is_authenticated and current_user.is_admin %}
+            <hr class="my-3" style="border-color: rgba(255,255,255,0.2);">
+            <a class="nav-link {% if request.endpoint == 'admin' %}active{% endif %}" href="{{ url_for('admin') }}">
+                <i class="fas fa-cogs me-2"></i>Administration
+            </a>
+            <a class="nav-link {% if request.endpoint == 'model_management' %}active{% endif %}" href="{{ url_for('model_management') }}">
+                <i class="fas fa-brain me-2"></i>ML Models
+            </a>
+            <a class="nav-link {% if request.endpoint == 'system_health' %}active{% endif %}" href="{{ url_for('system_health') }}">
+                <i class="fas fa-heartbeat me-2"></i>System Health
+            </a>
+            {% endif %}
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Alert Container -->
+        <div id="alertContainer"></div>
+        
+        <!-- Loading Spinner -->
+        <div class="loading-spinner" id="loadingSpinner">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <!-- DataTables -->
+    <script type="text/javascript" src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script type="text/javascript" src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+    <script>
+        // Global JavaScript functions
+        class FraudDetectionApp {
+            constructor() {
+                this.apiEndpoint = '/api/v1';
+                this.authToken = localStorage.getItem('authToken');
+                this.init();
+            }
+
+            init() {
+                this.setupEventListeners();
+                this.loadNotifications();
+                this.setupWebSocket();
+            }
+
+            setupEventListeners() {
+                // Sidebar toggle for mobile
+                document.getElementById('sidebarToggle')?.addEventListener('click', () => {
+                    document.getElementById('sidebar').classList.toggle('show');
+                });
+
+                // Auto-hide alerts
+                document.addEventListener('DOMContentLoaded', () => {
+                    setTimeout(() => {
+                        document.querySelectorAll('.alert').forEach(alert => {
+                            if (!alert.classList.contains('alert-permanent')) {
+                                alert.style.opacity = '0';
+                                setTimeout(() => alert.remove(), 500);
+                            }
+                        });
+                    }, 5000);
+                });
+            }
+
+            async makeRequest(endpoint, options = {}) {
+                const defaultOptions = {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${this.authToken}`
+                    }
+                };
+
+                const finalOptions = { ...defaultOptions, ...options };
+                if (finalOptions.body && typeof finalOptions.body === 'object') {
+                    finalOptions.body = JSON.stringify(finalOptions.body);
+                }
+
+                try {
+                    this.showLoading();
+                    const response = await fetch(`${this.apiEndpoint}${endpoint}`, finalOptions);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    
+                    const data = await response.json();
+                    return data;
+                } catch (error) {
+                    this.showAlert('Error: ' + error.message, 'danger');
+                    throw error;
+                } finally {
+                    this.hideLoading();
+                }
+            }
+
+            showLoading() {
+                document.getElementById('loadingSpinner').style.display = 'block';
+            }
+
+            hideLoading() {
+                document.getElementById('loadingSpinner').style.display = 'none';
+            }
+
+            showAlert(message, type = 'info', permanent = false) {
+                const alertHtml = `
+                    <div class="alert alert-${type} alert-dismissible fade show ${permanent ? 'alert-permanent' : ''}" role="alert">
+                        <i class="fas fa-${this.getAlertIcon(type)} me-2"></i>
+                        ${message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                `;
+                
+                document.getElementById('alertContainer').insertAdjacentHTML('beforeend', alertHtml);
+                
+                if (!permanent) {
+                    setTimeout(() => {
+                        const alerts = document.querySelectorAll('.alert:not(.alert-permanent)');
+                        if (alerts.length > 0) {
+                            alerts[alerts.length - 1].remove();
+                        }
+                    }, 5000);
+                }
+            }
+
+            getAlertIcon(type) {
+                const icons = {
+                    'success': 'check-circle',
+                    'danger': 'exclamation-triangle',
+                    'warning': 'exclamation-circle',
+                    'info': 'info-circle'
+                };
+                return icons[type] || 'info-circle';
+            }
+
+            async loadNotifications() {
+                try {
+                    const notifications = await this.makeRequest('/notifications');
+                    this.updateNotificationDisplay(notifications);
+                } catch (error) {
+                    console.error('Failed to load notifications:', error);
+                }
+            }
+
+            updateNotificationDisplay(notifications) {
+                const unreadCount = notifications.filter(n => !n.read).length;
+                document.getElementById('notificationCount').textContent = unreadCount;
+                
+                const notificationList = document.getElementById('notificationList');
+                notificationList.innerHTML = `
+                    <li><h6 class="dropdown-header">Recent Alerts</h6></li>
+                    <li><hr class="dropdown-divider"></li>
+                `;
+                
+                if (notifications.length === 0) {
+                    notificationList.innerHTML += '<li><a class="dropdown-item text-muted">No notifications</a></li>';
+                } else {
+                    notifications.slice(0, 5).forEach(notification => {
+                        notificationList.innerHTML += `
+                            <li>
+                                <a class="dropdown-item ${notification.read ? 'text-muted' : ''}" href="#" 
+                                   onclick="app.markNotificationRead('${notification.id}')">
+                                    <small class="text-muted">${this.formatDateTime(notification.timestamp)}</small><br>
+                                    ${notification.message.substring(0, 50)}...
+                                </a>
+                            </li>
+                        `;
+                    });
+                }
+            }
+
+            async markNotificationRead(notificationId) {
+                try {
+                    await this.makeRequest(`/notifications/${notificationId}/read`, { method: 'POST' });
+                    this.loadNotifications();
+                } catch (error) {
+                    console.error('Failed to mark notification as read:', error);
+                }
+            }
+
+            setupWebSocket() {
+                // WebSocket for real-time updates
+                if (window.WebSocket) {
+                    const ws = new WebSocket(`ws://${window.location.host}/ws`);
+                    
+                    ws.onmessage = (event) => {
+                        const data = JSON.parse(event.data);
+                        
+                        if (data.type === 'notification') {
+                            this.showAlert(data.message, data.level || 'info');
+                            this.loadNotifications();
+                        } else if (data.type === 'fraud_alert') {
+                            this.showAlert(
+                                `High risk phone number detected: ${data.phone_number}`,
+                                'danger',
+                                true
+                            );
+                        }
+                    };
+                    
+                    ws.onerror = (error) => {
+                        console.error('WebSocket error:', error);
+                    };
+                }
+            }
+
+            formatDateTime(dateString) {
+                const date = new Date(dateString);
+                return date.toLocaleString();
+            }
+
+            formatPhoneNumber(phone) {
+                // Basic phone number formatting
+                return phone.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3');
+            }
+
+            getRiskColor(riskLevel) {
+                const colors = {
+                    'CRITICAL': '#e74c3c',
+                    'HIGH': '#f39c12',
+                    'MEDIUM': '#17a2b8',
+                    'LOW': '#27ae60',
+                    'MINIMAL': '#6c757d'
+                };
+                return colors[riskLevel] || colors['MEDIUM'];
+            }
+
+            createRiskBadge(riskLevel, riskScore) {
+                const color = this.getRiskColor(riskLevel);
+                return `
+                    <span class="badge" style="background-color: ${color}">
+                        ${riskLevel} (${(riskScore * 100).toFixed(1)}%)
+                    </span>
+                `;
+            }
+        }
+
+        // Initialize the app
+        const app = new FraudDetectionApp();
+
+        // Utility functions for specific pages
+        function initializeDataTable(tableId, options = {}) {
+            const defaultOptions = {
+                pageLength: 25,
+                responsive: true,
+                order: [[0, 'desc']],
+                language: {
+                    search: "Search:",
+                    lengthMenu: "Show _MENU_ entries",
+                    info: "Showing _START_ to _END_ of _TOTAL_ entries",
+                    paginate: {
+                        first: "First",
+                        last: "Last",
+                        next: "Next",
+                        previous: "Previous"
+                    }
+                }
+            };
+            
+            return $('#' + tableId).DataTable({ ...defaultOptions, ...options });
+        }
+
+        function createChart(canvasId, config) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            return new Chart(ctx, config);
+        }
+
+        function validatePhoneNumber(phone) {
+            // Basic phone number validation
+            const phoneRegex = /^[\+]?[1-9]\d{1,14}$/;
+            return phoneRegex.test(phone.replace(/[\s\-KATEX_INLINE_OPENKATEX_INLINE_CLOSE]/g, ''));
+        }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+    </script>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>
