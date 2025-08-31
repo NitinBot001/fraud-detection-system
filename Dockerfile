@@ -8,12 +8,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     POETRY_VENV_IN_PROJECT=1 \
     POETRY_CACHE_DIR=/tmp/poetry_cache
 
-# Install system dependencies including git
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
     libpq-dev \
     curl \
-    git \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Poetry
@@ -29,14 +28,9 @@ COPY pyproject.toml poetry.lock* ./
 RUN poetry config virtualenvs.create true && \
     poetry config virtualenvs.in-project true && \
     poetry install --only=main --no-root && \
+    # Install uvloop separately if not in poetry dependencies
+    poetry run pip install git+https://github.com/MagicStack/uvloop && \
     rm -rf $POETRY_CACHE_DIR
-
-# Build uvloop from source
-RUN cd /tmp && \
-    git clone --recursive https://github.com/MagicStack/uvloop.git && \
-    cd uvloop && \
-    /app/.venv/bin/pip install -e . && \
-    cd / && rm -rf /tmp/uvloop
 
 # Production stage
 FROM python:3.11-slim AS production
@@ -69,6 +63,10 @@ RUN mkdir -p /app/logs /app/data /app/models && \
 
 # Switch to non-root user
 USER appuser
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+    CMD /app/.venv/bin/python -c "import requests; requests.get('http://localhost:5000/health')" || exit 1
 
 # Expose port
 EXPOSE 5000
