@@ -1,5 +1,5 @@
 # Multi-stage build for production optimization
-FROM python:3.10-slim AS builder
+FROM python:3.11-slim AS builder
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -8,11 +8,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     POETRY_VENV_IN_PROJECT=1 \
     POETRY_CACHE_DIR=/tmp/poetry_cache
 
-# Install system dependencies
+# Install system dependencies including git
 RUN apt-get update && apt-get install -y \
     build-essential \
     libpq-dev \
     curl \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Poetry
@@ -24,19 +25,25 @@ WORKDIR /app
 # Copy poetry files
 COPY pyproject.toml poetry.lock* ./
 
-# Explicitly create virtual environment and install dependencies
+# Configure Poetry and install dependencies
 RUN poetry config virtualenvs.create true && \
     poetry config virtualenvs.in-project true && \
     poetry install --only=main --no-root && \
     rm -rf $POETRY_CACHE_DIR
+
+# Build uvloop from source
+RUN cd /tmp && \
+    git clone --recursive https://github.com/MagicStack/uvloop.git && \
+    cd uvloop && \
+    /app/.venv/bin/pip install -e . && \
+    cd / && rm -rf /tmp/uvloop
 
 # Production stage
 FROM python:3.11-slim AS production
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PATH="/app/.venv/bin:$PATH"
+    PYTHONUNBUFFERED=1
 
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y \
@@ -63,12 +70,8 @@ RUN mkdir -p /app/logs /app/data /app/models && \
 # Switch to non-root user
 USER appuser
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:5000/health || exit 1
-
 # Expose port
 EXPOSE 5000
 
-# Command to run the application
-CMD ["python", "main.py"]
+# Use the virtual environment's Python directly
+CMD ["/app/.venv/bin/python", "main.py"]
